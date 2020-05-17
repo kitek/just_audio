@@ -219,9 +219,9 @@ class AudioPlayer {
   /// type of the stream in advance, you may as a workaround supply the
   /// extension as a URL fragment. e.g.
   /// https://somewhere.com/somestream?x=etc#.m3u8
-  Future<Duration> setUrl(final String url) async {
+  Future<Duration> setUrl(final String url, [Map<String, String> httpHeaders]) async {
     try {
-      _durationFuture = _invokeMethod('setUrl', [url])
+      _durationFuture = _invokeMethod('setUrl', [url, httpHeaders])
           .then((ms) => ms == null ? null : Duration(milliseconds: ms));
       _duration = await _durationFuture;
       _durationSubject.add(_duration);

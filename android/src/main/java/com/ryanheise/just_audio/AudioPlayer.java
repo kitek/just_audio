@@ -41,6 +41,7 @@ import android.content.Context;
 import android.net.Uri;
 
 import java.util.List;
+import java.util.Map;
 
 public class AudioPlayer implements MethodCallHandler, Player.EventListener, MetadataOutput {
 	static final String TAG = "AudioPlayer";
@@ -227,13 +228,14 @@ public class AudioPlayer implements MethodCallHandler, Player.EventListener, Met
 		seekResult = null;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void onMethodCall(final MethodCall call, final Result result) {
 		final List<?> args = (List<?>)call.arguments;
 		try {
 			switch (call.method) {
 			case "setUrl":
-				setUrl((String)args.get(0), result);
+				setUrl((String)args.get(0), (Map<String, String>) args.get(1), result);
 				break;
 			case "setClip":
 				Object start = args.get(0);
@@ -361,18 +363,23 @@ public class AudioPlayer implements MethodCallHandler, Player.EventListener, Met
 		broadcastPlaybackEvent();
 	}
 
-	public void setUrl(final String url, final Result result) throws IOException {
+	public void setUrl(final String url, final Map<String, String> headers, final Result result) throws IOException {
 		justConnected = false;
 		abortExistingConnection();
 		prepareResult = result;
 		transition(PlaybackState.connecting);
 		String userAgent = Util.getUserAgent(context, "just_audio");
-		DataSource.Factory httpDataSourceFactory = new DefaultHttpDataSourceFactory(
+		DefaultHttpDataSourceFactory httpDataSourceFactory = new DefaultHttpDataSourceFactory(
 				userAgent,
 				DefaultHttpDataSource.DEFAULT_CONNECT_TIMEOUT_MILLIS,
 				DefaultHttpDataSource.DEFAULT_READ_TIMEOUT_MILLIS,
 				true
 		);
+		if(null != headers) {
+			for (Map.Entry<String, String> entry : headers.entrySet()) {
+				httpDataSourceFactory.getDefaultRequestProperties().set(entry.getKey(), entry.getValue());
+			}
+		}
 		DataSource.Factory dataSourceFactory = new DefaultDataSourceFactory(context, httpDataSourceFactory);
 		Uri uri = Uri.parse(url);
 		String extension = getLowerCaseExtension(uri);
